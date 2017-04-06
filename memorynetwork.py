@@ -93,89 +93,92 @@ def vectorize_stories(data, word_idx, story_maxlen, query_maxlen):
     return (pad_sequences(X, maxlen=story_maxlen),
             pad_sequences(Xq, maxlen=query_maxlen), np.array(Y))
 
-try:
-    path = get_file('babi-tasks-v1-2.tar.gz', origin='https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz')
-except:
-    print('Error downloading dataset, please download it manually:\n'
-          '$ wget http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz\n'
-          '$ mv tasks_1-20_v1-2.tar.gz ~/.keras/datasets/babi-tasks-v1-2.tar.gz')
-    raise
-tar = tarfile.open(path)
-
-challenges = {
-    # QA1 with 10,000 samples
-    'single_supporting_fact_10k': 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt',
-    # QA2 with 10,000 samples
-    'two_supporting_facts_10k': 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt',
-}
-challenge_type = 'single_supporting_fact_10k'
-challenge = challenges[challenge_type]
-
-print('Extracting stories for the challenge:', challenge_type)
-train_stories = get_stories(tar.extractfile(challenge.format('train')))
-test_stories = get_stories(tar.extractfile(challenge.format('test')))
-
-vocab = set()
-for story, q, answer in train_stories + test_stories:
-    vocab |= set(story + q + [answer])
-vocab = sorted(vocab)
+def startup():
+  try:
+      path = get_file('babi-tasks-v1-2.tar.gz', origin='https://s3.amazonaws.com/text-datasets/babi_tasks_1-20_v1-2.tar.gz')
+  except:
+      print('Error downloading dataset, please download it manually:\n'
+            '$ wget http://www.thespermwhale.com/jaseweston/babi/tasks_1-20_v1-2.tar.gz\n'
+            '$ mv tasks_1-20_v1-2.tar.gz ~/.keras/datasets/babi-tasks-v1-2.tar.gz')
+      raise
     
-# Reserve 0 for masking via pad_sequences
-vocab_size = len(vocab) + 1
-story_maxlen = max(map(len, (x for x, _, _ in train_stories + test_stories)))
-query_maxlen = max(map(len, (x for _, x, _ in train_stories + test_stories)))
+  tar = tarfile.open(path)
 
-print('-')
-print('Vocab size:', vocab_size, 'unique words')
-print('Story max length:', story_maxlen, 'words')
-print('Query max length:', query_maxlen, 'words')
-print('Number of training stories:', len(train_stories))
-print('Number of test stories:', len(test_stories))
-print('-')
-print('Here\'s what a "story" tuple looks like (input, query, answer):')
-print(train_stories[0])
-#for t in range(0, len(train_stories)):
-#  print(t, train_stories[t])
-print('-')
-print('Vectorizing the word sequences...')
+  challenges = {
+      # QA1 with 10,000 samples
+      'single_supporting_fact_10k': 'tasks_1-20_v1-2/en-10k/qa1_single-supporting-fact_{}.txt',
+      # QA2 with 10,000 samples
+      'two_supporting_facts_10k': 'tasks_1-20_v1-2/en-10k/qa2_two-supporting-facts_{}.txt',
+  }
+  challenge_type = 'single_supporting_fact_10k'
+  challenge = challenges[challenge_type]
 
-word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
-idx_word = dict((i + 1, c) for i, c in enumerate(vocab))
-inputs_train, queries_train, answers_train = vectorize_stories(train_stories,
-                                                               word_idx,
-                                                               story_maxlen,
-                                                               query_maxlen)
-                                                               
-print(inputs_train[0])
-print(queries_train[0])
-print(answers_train[0])
-print(vocab)
+  print('Extracting stories for the challenge:', challenge_type)
+  train_stories = get_stories(tar.extractfile(challenge.format('train')))
+  test_stories = get_stories(tar.extractfile(challenge.format('test')))
+  print(test_stories)
+  
+  vocab = set()
+  for story, q, answer in train_stories + test_stories:
+      vocab |= set(story + q + [answer])
+  vocab = sorted(vocab)
+      
+  # Reserve 0 for masking via pad_sequences
+  vocab_size = len(vocab) + 1
+  story_maxlen = max(map(len, (x for x, _, _ in train_stories + test_stories)))
+  query_maxlen = max(map(len, (x for _, x, _ in train_stories + test_stories)))
 
-inputs_test, queries_test, answers_test = vectorize_stories(test_stories,
-                                                            word_idx,
-                                                            story_maxlen,
-                                                            query_maxlen)
+  print('-')
+  print('Vocab size:', vocab_size, 'unique words')
+  print('Story max length:', story_maxlen, 'words')
+  print('Query max length:', query_maxlen, 'words')
+  print('Number of training stories:', len(train_stories))
+  print('Number of test stories:', len(test_stories))
+  print('-')
+  print('Here\'s what a "story" tuple looks like (input, query, answer):')
+  print(train_stories[0])
+  #for t in range(0, len(train_stories)):
+  #  print(t, train_stories[t])
+  print('-')
+  print('Vectorizing the word sequences...')
 
-print('-')
-print('inputs: integer tensor of shape (samples, max_length)')
-print('inputs_train shape:', inputs_train.shape)
-print('inputs_test shape:', inputs_test.shape)
-print('-')
-print('queries: integer tensor of shape (samples, max_length)')
-print('queries_train shape:', queries_train.shape)
-print('queries_test shape:', queries_test.shape)
-print('-')
-print('answers: binary (1 or 0) tensor of shape (samples, vocab_size)')
-print('answers_train shape:', answers_train.shape)
-print('answers_test shape:', answers_test.shape)
-print('-')
-print('Compiling...')
+  word_idx = dict((c, i + 1) for i, c in enumerate(vocab))
+  idx_word = dict((i + 1, c) for i, c in enumerate(vocab))
+  inputs_train, queries_train, answers_train = vectorize_stories(train_stories,
+                                                                 word_idx,
+                                                                 story_maxlen,
+                                                                 query_maxlen)
+                                                                 
+  print(inputs_train[0])
+  print(queries_train[0])
+  print(answers_train[0])
+  print(vocab)
 
-#print('Exiting...')
-#exit()
-train = False
+  inputs_test, queries_test, answers_test = vectorize_stories(test_stories,
+                                                              word_idx,
+                                                              story_maxlen,
+                                                              query_maxlen)
 
-if train:
+  print('-')
+  print('inputs: integer tensor of shape (samples, max_length)')
+  print('inputs_train shape:', inputs_train.shape)
+  print('inputs_test shape:', inputs_test.shape)
+  print('-')
+  print('queries: integer tensor of shape (samples, max_length)')
+  print('queries_train shape:', queries_train.shape)
+  print('queries_test shape:', queries_test.shape)
+  print('-')
+  print('answers: binary (1 or 0) tensor of shape (samples, vocab_size)')
+  print('answers_train shape:', answers_train.shape)
+  print('answers_test shape:', answers_test.shape)
+  print('-')
+
+  return inputs_train, queries_train, answers_train, inputs_test, queries_test, answers_test, train_stories, test_stories, story_maxlen, query_maxlen, vocab_size
+  #print('Exiting...')
+  #exit()
+
+def compile(inputs_train, queries_train, answers_train, inputs_test, queries_test, answers_test, train_stories, test_stories, story_maxlen, query_maxlen, vocab_size):
+  print('Compiling...')
   # placeholders
   input_sequence = Input((story_maxlen,))
   question = Input((query_maxlen,))
@@ -250,7 +253,8 @@ if train:
     text_file.write(json_string)
 
   model.save_weights('weights.hdf5')  
-else:
+  
+def trained(inputs_train, queries_train, answers_train, inputs_test, queries_test, answers_test, train_stories, test_stories, story_maxlen, query_maxlen, vocab_size):
   print("****************************")
   print("******* Not training *******")
   print("****************************")
@@ -293,8 +297,22 @@ else:
   print(np.shape(queries_test))
   print(question)
   answer = model.predict(question)
-  print(answer[0])
+  print(np.rint(answer[0]))
   print(test_stories[0])
+
+  user_question = "go"
+  while user_question != "quit":
+    user_question = input("Ask a question or quit: ")
+    print("You asked: " + user_question)
+    num=user_question.count(" ")
+    query = user_question.split(' ', num )
+    print("Who do I look like your slavebot? Read the damn story yourself!")
+    #query = np.array(user_question.split(' ', num ))
+    #print(query)
+    #print(user_question.split(' ', num ))
+    
+    #inputs_test, queries_test, answers_test = vectorize_stories([[]],word_idx,story_maxlen,query_maxlen)
+
 
 #####################################################################################################
 # chatbot
@@ -308,5 +326,14 @@ else:
 # --> I'm assuming that if the answer is in vector form that I will need to decode back to english
 # Stored vectors integers from the vocab lookup table, this table will need to be saved and loaded.
           
-
+if __name__ == '__main__':
+  print("main")  
+  inputs_train, queries_train, answers_train, inputs_test, queries_test, answers_test, train_stories, test_stories, story_maxlen, query_maxlen, vocab_size = startup()
+  print(inputs_test)
+  print(queries_test)
+  train = input("Train (yes/no): ")
+  if train == "yes" or train == "y":
+    compile(inputs_train, queries_train, answers_train, inputs_test, queries_test, answers_test, train_stories, test_stories, story_maxlen, query_maxlen, vocab_size)
+  trained(inputs_train, queries_train, answers_train, inputs_test, queries_test, answers_test, train_stories, test_stories, story_maxlen, query_maxlen, vocab_size)
+  exit()
 
